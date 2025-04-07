@@ -358,7 +358,6 @@ const SHUTTER_CSS =`
         top: 20px;
         left: 0%;
         width: 100%;
-        cursor: pointer;
         height: 40px;
       }
       .${ESC_CLASS_MOVEMENT_OVERLAY} {
