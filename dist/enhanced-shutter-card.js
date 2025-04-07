@@ -1182,8 +1182,6 @@ class EnhancedShutter extends LitElement
               </div>
               <div class="${ESC_CLASS_SELECTOR_PICKER}"
                 @pointerdown="${this.mouseDown}"
-                @mousedown="${this.mouseDown}"
-                @touchstart="${this.mouseDown}"
                 style="top: ${screenPosition + this.cfg.topOffsetPx() - this.cfg.pickerOverlapPx() + (this.cfg.shutterBottomHeightPx() / 2)}${UNITY};">
               </div>
               ${this.cfg.partial() && !this.cfg.offset()? html`
@@ -1286,13 +1284,7 @@ class EnhancedShutter extends LitElement
     this.action='user-drag';
 
     this.getPickPoint(event);
-
-    this.addEventListener('mousemove', this.mouseMove);
-    this.addEventListener('touchmove', this.mouseMove);
     this.addEventListener('pointermove', this.mouseMove);
-
-    this.addEventListener('mouseup', this.mouseUp);
-    this.addEventListener('touchend', this.mouseUp);
     this.addEventListener('pointerup', this.mouseUp);
   };
 
@@ -1313,12 +1305,7 @@ class EnhancedShutter extends LitElement
     console_log('mouseUp:',event.type,event);
     if (event.pageY === undefined) return;
 
-    this.removeEventListener('mousemove', this.mouseMove);
-    this.removeEventListener('touchmove', this.mouseMove);
     this.removeEventListener('pointermove', this.mouseMove);
-
-    this.removeEventListener('mouseup', this.mouseUp);
-    this.removeEventListener('touchend', this.mouseUp);
     this.removeEventListener('pointerup', this.mouseUp);
 
 
