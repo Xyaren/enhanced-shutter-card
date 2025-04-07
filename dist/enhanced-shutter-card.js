@@ -982,6 +982,7 @@ class EnhancedShutter extends LitElement
     return {
       shutterState: {type: String},
       screenPosition: {state: true},
+      isDrag: {state: true, type: Boolean},
       screenOrientation: {type: String},
     };
   }
@@ -991,6 +992,7 @@ class EnhancedShutter extends LitElement
     this.screenPosition=-1;
     this.positionText ='';
     this.action = '#';
+    this.isDrag = false
     console_log('Version:',this.version);
     //console_log('Shutter constructor ready');
   }
@@ -1024,7 +1026,7 @@ class EnhancedShutter extends LitElement
     let positionText;
     let screenPosition;
 
-    if (this.action=='user-drag'){
+    if (this.action=='user-drag' && this.screenPosition >= -1){
       positionText =  this.positionText;
       screenPosition = this.screenPosition
     }else{
@@ -1163,7 +1165,7 @@ class EnhancedShutter extends LitElement
                 width: ${this.cfg.buttonsInRow() ? '100%': this.cfg.windowWidthPx()+UNITY};
                 height: ${this.cfg.windowHeightPx()+UNITY};
               ">
-                <img class="${ESC_CLASS_SELECTOR_VIEW}" style="
+                <img class="${ESC_CLASS_SELECTOR_VIEW}" draggable="false" style="
                   margin: ${this.cfg.topOffsetPx()+UNITY} ${this.cfg.rightOffsetPx()+UNITY} ${this.cfg.bottomOffsetPx()+UNITY} ${this.cfg.leftOffsetPx()+UNITY};
                   width: calc(100% - (${(this.cfg.leftOffsetPx() + this.cfg.rightOffsetPx())+UNITY}));
                   height: ${this.cfg.coverAreaHeightPx()}${UNITY};
@@ -1171,20 +1173,21 @@ class EnhancedShutter extends LitElement
                     ? `background-image: url(${this.cfg.viewImage()}`
                     : `background-color:${this.cfg.viewImage()}`
                   }">
-                <img class="${ESC_CLASS_SELECTOR_FRAME}" src= "${this.cfg.windowImage() } ">
+                <img draggable="false" class="${ESC_CLASS_SELECTOR_FRAME}" src= "${this.cfg.windowImage() } ">
               <div class="${ESC_CLASS_SELECTOR_SLIDE}" style="
                 margin: ${this.cfg.topOffsetPx()+UNITY} ${this.cfg.rightOffsetPx()+UNITY} ${this.cfg.bottomOffsetPx()+UNITY} ${this.cfg.leftOffsetPx()+UNITY};
                 width: calc(100% - (${(this.cfg.leftOffsetPx() + this.cfg.rightOffsetPx())+UNITY}));
                 height: ${screenPosition + this.cfg.shutterBottomHeightPx()}${UNITY};
                 background-image: url(${this.cfg.shutterSlatImage()});
                 ">
-                <img style="height: ${this.cfg.shutterBottomHeightPx()}${UNITY};" src="${this.cfg.shutterBottomImage()}">
+                <img draggable="false" style="height: ${this.cfg.shutterBottomHeightPx()}${UNITY};" src="${this.cfg.shutterBottomImage()}">
               </div>
               <div class="${ESC_CLASS_SELECTOR_PICKER}"
                 @pointerdown="${this.mouseDown}"
                 @mousedown="${this.mouseDown}"
                 @touchstart="${this.mouseDown}"
-                style="top: ${screenPosition + this.cfg.topOffsetPx() - this.cfg.pickerOverlapPx() + (this.cfg.shutterBottomHeightPx() / 2)}${UNITY};">
+                style="top: ${screenPosition + this.cfg.topOffsetPx() - this.cfg.pickerOverlapPx() + (this.cfg.shutterBottomHeightPx() / 2)}${UNITY};
+                       cursor: ${this.isDrag ? "grabbing" : "grab"};">
               </div>
               ${this.cfg.partial() && !this.cfg.offset()? html`
                 <div class="${ESC_CLASS_SELECTOR_PARTIAL}" style="top:${this.cfg.defScreenPositionFromPercent(this.cfg.partial())}${UNITY}"></div>
@@ -1283,9 +1286,16 @@ class EnhancedShutter extends LitElement
       //Disable default drag event
       event.preventDefault();
     }
+    this.getPickPoint(event);
+
     this.action='user-drag';
 
-    this.getPickPoint(event);
+    // get initial positon for drag
+    this.screenPosition = this.getScreenPosition(event.pageY); // triggers refresh
+    let pointedShutterPosition = this.getShutterPosition(this.screenPosition);
+    this.positionText = this.cfg.computePositionText(pointedShutterPosition);
+
+    this.isDrag = true;
 
     this.addEventListener('mousemove', this.mouseMove);
     this.addEventListener('touchmove', this.mouseMove);
@@ -1299,12 +1309,16 @@ class EnhancedShutter extends LitElement
   mouseMove = (event) =>
   {
     console_log('mouseMove:',event.type,event);
+
+    if (event.cancelable) {
+      //Disable default drag event (prevent conflict with other registered drag events like "Home Assistant Swipe Navigation")
+      event.preventDefault();
+    }
     if (event.pageY === undefined) return;
     this.action='user-drag';
 
     this.screenPosition = this.getScreenPosition(event.pageY); // triggers refresh
     let pointedShutterPosition = this.getShutterPosition(this.screenPosition);
-
     this.positionText = this.cfg.computePositionText(pointedShutterPosition);
   };
 
@@ -1329,6 +1343,7 @@ class EnhancedShutter extends LitElement
 
     this.sendShutterPosition(this.cfg.entityId(), shutterPosition);
 
+    this.isDrag = false;
   };
   sendShutterPosition( entityId, position)
   {
